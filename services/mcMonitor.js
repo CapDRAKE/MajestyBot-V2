@@ -43,9 +43,8 @@ async function fetchStatus(address, port) {
 }
 
 function buildMention(cfg) {
-  if (cfg.mentionEveryone) return "@everyone";
-  const roles = Array.isArray(cfg.mentionRoleIds) ? cfg.mentionRoleIds.filter(Boolean) : [];
-  return roles.length ? roles.map(id => `<@&${id}>`).join(" ") : "";
+  const roles = ["694904362438361140", "1234516986227068949"]; // Gérant, Administration
+  return roles.map(id => `<@&${id}>`).join(" ");
 }
 
 async function sendAlert(client, cfg, embed, mentionText) {
@@ -55,7 +54,7 @@ async function sendAlert(client, cfg, embed, mentionText) {
   await ch.send({
     content: mentionText || "",
     embeds: [embed],
-    allowedMentions: cfg.mentionEveryone ? { parse: ["everyone"] } : { parse: ["roles"] }
+    allowedMentions: { parse: ["roles"] }
   }).catch(() => {});
 }
 

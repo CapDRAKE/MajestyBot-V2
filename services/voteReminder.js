@@ -340,13 +340,39 @@ async function runCheck(client, opts = {}) {
     .map(x => `• ${x.member} (MC: **${x.mc}**, votes: **${x.votes}**)`)
     .join("\n");
 
+  // ✅ Envoi en DM aux personnes concernées
+  let dmOk = 0;
+  let dmFail = 0;
+
+  for (const r of reminders) {
+    const dmText =
+`👋 Salut jeune soldat !
+
+🗳️ Petit rappel : n’oublie pas de **voter** pour MajestyCraft.
+C’est super rapide et ça aide énormément le serveur ❤️
+
+➡️ Lien de vote : ${cfg.voteUrl}
+
+Merci à toi, et bon jeu ! 🟩`;
+
+    try {
+      await r.member.send({ content: dmText, allowedMentions: { parse: [] } });
+      dmOk++;
+    } catch {
+      dmFail++; // MP fermés / impossible
+    }
+  }
+
+  // ✅ Résumé dans le staff chat (sans ping)
   await staffChannel.send({
     content:
-      `🔔 **Rappel vote** : aucun vote détecté depuis la dernière vérif.\n` +
-      `➡️ Vote ici : ${cfg.voteUrl}\n\n${lines}`,
-    allowedMentions: { users: reminders.map(x => x.member.id) }
+      `🔔 **Rappel vote envoyé en MP**\n` +
+      `➡️ ${cfg.voteUrl}\n` +
+      `✅ MP envoyés : **${dmOk}**\n` +
+      (dmFail ? `⚠️ MP impossibles (DM fermés) : **${dmFail}**\n` : "") +
+      `\nPersonnes concernées :\n${lines}`,
+    allowedMentions: { parse: [] }
   }).catch(() => {});
-
   return { ok: true, parsed: ranking.length, matched: matchedCount, reminded: reminders.length };
 }
 
