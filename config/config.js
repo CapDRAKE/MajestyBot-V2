@@ -129,7 +129,9 @@ module.exports = {
     intervalSec: 20,
 
     // pour éviter les faux positifs : down seulement après N échecs d'affilée
-    failThreshold: 1,
+    failThreshold: 3,
+    requestAttempts: 3,
+    requestRetryDelayMs: 1200,
 
     // cooldown anti-spam (en minutes) si ça flap
     notifyCooldownMin: 10,
