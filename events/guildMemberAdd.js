@@ -5,12 +5,13 @@ module.exports = {
   name: "guildMemberAdd",
   once: false,
   async execute(client, member) {
-    
+    const gc = client.config.getGuildConfig(member.guild.id);
+
     await inviteTracker.handleJoin(client, member);
-    
-    // 1) Ajout du rôle visiteur (sans reason = pas de log texte)
+
+    // 1) Ajout du rôle visiteur
     try {
-      const visitorRoleId = client.config.visitorRoleId;
+      const visitorRoleId = gc.visitorRoleId;
       if (visitorRoleId) {
         const role = member.guild.roles.cache.get(visitorRoleId);
         if (role) {
@@ -23,9 +24,11 @@ module.exports = {
 
     // 2) Message de bienvenue
     try {
-      const ch = await member.guild.channels.fetch(client.config.welcomeChannelId);
-      if (ch && ch.isTextBased()) {
-        await ch.send(`👋 Bienvenue ${member} sur **${member.guild.name}** !`);
+      if (gc.welcomeChannelId) {
+        const ch = await member.guild.channels.fetch(gc.welcomeChannelId);
+        if (ch && ch.isTextBased()) {
+          await ch.send(`👋 Bienvenue ${member} sur **${member.guild.name}** !`);
+        }
       }
     } catch (e) {
       console.error("Welcome error:", e?.message || e);
@@ -33,25 +36,26 @@ module.exports = {
 
     // 3) Ghost ping (ping puis suppression très rapide)
     try {
-      const ghostChannelId = client.config.joinGhostPingChannelId || "845233355629002772";
-      const ch = await member.guild.channels.fetch(ghostChannelId);
-      if (ch && ch.isTextBased()) {
-        const msg = await ch.send({
-          content: `${member}`,
-          allowedMentions: { users: [member.id] } // ping uniquement lui
-        });
-
-        // supprime très vite (l'utilisateur voit juste la notif)
-        setTimeout(() => msg.delete().catch(() => {}), 800);
+      const ghostChannelId = gc.joinGhostPingChannelId;
+      if (ghostChannelId) {
+        const ch = await member.guild.channels.fetch(ghostChannelId);
+        if (ch && ch.isTextBased()) {
+          const msg = await ch.send({
+            content: `${member}`,
+            allowedMentions: { users: [member.id] }
+          });
+          setTimeout(() => msg.delete().catch(() => {}), 800);
+        }
       }
     } catch (e) {
       console.error("Ghost ping error:", e?.message || e);
     }
 
-   // 4) ✅ DM automatique bienvenue + vote
+   // 4) DM automatique bienvenue + vote (seulement si configuré)
     try {
-      const voteUrl = client.config.voteUrl || "https://majestycraft.com/vote";
-      const joinIp = client.config.serverJoinIp || "play.majestycraft.com";
+      const voteUrl = gc.voteUrl;
+      const joinIp = gc.serverJoinIp;
+      if (!voteUrl || !joinIp) return;
 
       const dmText =
 `👋 Salut ${member.user.username} !

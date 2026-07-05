@@ -2,6 +2,14 @@ const fs = require("fs");
 const path = require("path");
 
 function loadOpenAIConfig() {
+  // Priorité : variable d'environnement > config/openai.json
+  if (process.env.OPENAI_API_KEY) {
+    const p = path.join(__dirname, "..", "config", "openai.json");
+    let model = "gpt-4o-mini";
+    try { model = JSON.parse(fs.readFileSync(p, "utf8")).model || model; } catch {}
+    return { apiKey: process.env.OPENAI_API_KEY, model };
+  }
+
   const p = path.join(__dirname, "..", "config", "openai.json");
   if (!fs.existsSync(p)) return null;
   try {

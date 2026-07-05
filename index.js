@@ -3,6 +3,8 @@ if (!globalThis.crypto) {
   globalThis.crypto = require("node:crypto").webcrypto;
 }
 
+require("dotenv").config();
+
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const config = require("./config/config");
 

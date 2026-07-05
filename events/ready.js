@@ -30,9 +30,12 @@ module.exports = {
     });
 
     try {
-      // 1) ticket panel (si tu l'utilises)
+      // 1) ticket panel — seulement si panelChannelId défini pour ce guild
       for (const guild of client.guilds.cache.values()) {
-        await tickets.ensureTicketPanel(client, guild);
+        const gc = client.config.getGuildConfig(guild.id);
+        if (gc.ticket?.panelChannelId) {
+          await tickets.ensureTicketPanel(client, guild);
+        }
       }
     } catch (e) {
       console.error("Ticket panel init error:", e?.message || e);
@@ -50,7 +53,10 @@ module.exports = {
     console.log("✅ Vote reminder started");
 
     for (const guild of client.guilds.cache.values()) {
-      await inviteTracker.initGuild(guild);
+      const gc = client.config.getGuildConfig(guild.id);
+      if (gc.inviteTracker?.enabled !== false) {
+        await inviteTracker.initGuild(guild);
+      }
     }
     console.log("✅ Invite tracker ready");
 
@@ -58,7 +64,10 @@ module.exports = {
     console.log("✅ Member counters started");
 
     for (const guild of client.guilds.cache.values()) {
-      await roleMenu.ensureRoleMenu(client, guild);
+      const gc = client.config.getGuildConfig(guild.id);
+      if (gc.roleMenu?.enabled) {
+        await roleMenu.ensureRoleMenu(client, guild);
+      }
     }
     console.log("✅ Role menu ready");
   }
