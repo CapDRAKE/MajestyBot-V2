@@ -27,7 +27,10 @@ module.exports = {
       if (gc.welcomeChannelId) {
         const ch = await member.guild.channels.fetch(gc.welcomeChannelId);
         if (ch && ch.isTextBased()) {
-          await ch.send(`👋 Bienvenue ${member} sur **${member.guild.name}** !`);
+          const msg = gc.welcomeMessage
+            ? gc.welcomeMessage.replace("{user}", `${member}`).replace("{guild}", member.guild.name)
+            : `👋 Bienvenue ${member} sur **${member.guild.name}** !`;
+          await ch.send(msg);
         }
       }
     } catch (e) {

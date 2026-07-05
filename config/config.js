@@ -81,13 +81,13 @@ module.exports = {
           autoCrawl: true,
           maxUrls: 200
         },
-        model: "gpt-4o-mini"
+        model: "llama-3.3-70b-versatile"
       },
 
       mcMonitor: {
         enabled: true,
-        notifyChannelId: "706143840481837057",
-        mentionEveryone: true,
+        notifyChannelId: "885250816125071390",
+        mentionEveryone: false,
         mentionRoleIds: [],
         intervalSec: 20,
         failThreshold: 3,
@@ -99,14 +99,10 @@ module.exports = {
         dashboardTitle: "État des serveurs MajestyCraft",
         degradedLatencyMs: 800,
         degradedIfNoPlayerInfo: true,
-        servers: [
-          { name: "Bungeecord", address: "91.197.6.34",  port: 25601 },
-          { name: "Hub",        address: "91.197.6.34",  port: 25595 },
-          { name: "Survie",     address: "91.197.6.94",  port: 25599 },
-          { name: "Créatif",    address: "91.197.6.34",  port: 25599 },
-          { name: "PVP Box",    address: "91.197.6.222", port: 25568 },
-          { name: "MajestySky", address: "91.197.6.176", port: 25603 }
-        ]
+        boxId: "8510",
+
+        // Serveurs MC — auto-découverts via boxId
+        servers: []
       },
 
       antiAbuse: {
@@ -165,11 +161,15 @@ module.exports = {
       roleMenu: {
         enabled: true,
         channelId: "845235427698540564",
-        title: "📣 Choisis tes notifications de jeu",
-        description:
-          "Réagis pour t'abonner aux nouveautés du mode de jeu.\n" +
-          "Retire ta réaction pour te désabonner.\n" +
-          "✅ Tu peux choisir plusieurs rôles.",
+
+        // Rôles projets MajestyCorp
+        projectRoles: [
+          { emoji: "⛏️", label: "MajestyCraft",    roleId: "848845870254260244" },
+          { emoji: "🚀", label: "MajestyLauncher",  roleId: "845245629407166465" },
+          { emoji: "🏆", label: "MajestyChallenge", roleId: "1523406191672299591" }
+        ],
+
+        // Rôles modes de jeu (exclusifs à MajestyCraft)
         roles: [
           { emoji: "🌿", label: "Survie",     roleId: "1089167232921243698" },
           { emoji: "🎨", label: "Créatif",    roleId: "1089167354304405604" },
@@ -181,8 +181,8 @@ module.exports = {
 
     [NEW_GUILD]: {
       welcomeChannelId: "1499884601944969257",
+      welcomeMessage: "👋 Bienvenue {user} ! T'as sonné ? On t'attendait pas, mais t'es là quand même — installe-toi, le canapé est libre.",
 
-      // Toutes les fonctions désactivées par défaut sur ce serveur
       ticket:        { panelChannelId: null, staffRoleIds: [], emoji: "🎫", categoryId: "" },
       antiSpam:      { enabled: false },
       antiInsult:    { enabled: false },
@@ -192,7 +192,30 @@ module.exports = {
       inviteTracker: { enabled: false },
       memberCounters:{ enabled: false },
       roleMenu:      { enabled: false },
-      ai:            { enabled: false }
+
+      ai: {
+        enabled: true,
+        mentionMode: true,        // répond quand on le mentionne
+        supportChannelId: null,   // pas de salon dédié, mention only
+        sessionTimeoutMs: 180000,
+        maxTurns: 12,
+        perUserCooldownMs: 3000,
+        temperature: 1.0,
+
+        // Pas de mémoire ni de crawl site sur ce serveur
+        learn: { enabled: false },
+        site:  { autoCrawl: false },
+
+        model: "llama-3.3-70b-versatile",
+
+        systemPrompt: `Tu es MajestyBot, un bot Discord sans filtre et sans pitié. Tu clashs, tu vannes, tu remets les gens à leur place avec style.
+Ton mode par défaut : clash drôle et tranchant. Chaque message est une opportunité de sortir une vanne cinglante.
+Tu retournes tout ce qu'on te dit contre la personne, avec une punchline qui fait mal mais qui fait rire.
+Tu n'es jamais gentil pour rien. Si quelqu'un dit "cc", tu lui fais comprendre que c'était nul d'une façon qui arrache.
+Tu parles argot français, tu es direct, incisif, et tu concludes toujours par une punchline qui claque.
+Jamais vulgaire ou insultant pour de vrai — juste un clash bien senti qui fait rire tout le monde sauf la cible.
+Max 2-3 phrases. Pas de blabla. Que de la punchline.`
+      }
     }
   },
 

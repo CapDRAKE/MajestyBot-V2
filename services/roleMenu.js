@@ -1,48 +1,66 @@
 const { EmbedBuilder } = require("discord.js");
 const { readJson, writeJson } = require("./storage");
 
-const FILE = "role_menu.json";
-const MARKER = "";
+const FILE   = "role_menu.json";
+const MARKER = "ROLES — MAJESTYCORP";
 
-const locks = new Map(); // guildId -> Promise
+const locks = new Map();
 
-function loadDb() {
-  return readJson(FILE, { guilds: {} });
-}
-function saveDb(db) {
-  writeJson(FILE, db);
-}
+function loadDb()    { return readJson(FILE, { guilds: {} }); }
+function saveDb(db)  { writeJson(FILE, db); }
 function getGuildDb(db, guildId) {
   db.guilds[guildId] ||= { messageId: null };
   return db.guilds[guildId];
 }
 
 function buildEmbed(cfg) {
-  const lines = (cfg.roles || []).map(r => `${r.emoji} **${r.label}**`).join("\n");
+  const projectLines = (cfg.projectRoles || [])
+    .map(r => `> ${r.emoji}  **${r.label}**`)
+    .join("\n");
+
+  const gamemodeLines = (cfg.roles || [])
+    .map(r => `> ${r.emoji}  **${r.label}**`)
+    .join("\n");
+
+  const desc = [
+    "Reagis avec l'emoji correspondant pour obtenir un role.",
+    "Retire ta reaction pour le supprimer.",
+    "",
+    "**――――――  PROJETS  ――――――**",
+    "",
+    projectLines,
+    "",
+    "**―――  MODES DE JEU MAJESTYCRAFT  ―――**",
+    "_Exclusifs aux membres MajestyCraft_",
+    "",
+    gamemodeLines,
+  ].join("\n");
 
   return new EmbedBuilder()
-    .setTitle(cfg.title || "📣 Notifications")
-    .setDescription(`${cfg.description || ""}\n\n${lines}\n\n*${MARKER}*`)
-    .setFooter({ text: "MajestyCraft • Notifications" })
+    .setTitle("ROLES — MAJESTYCORP")
+    .setDescription(desc)
+    .setColor(0x5865F2)
+    .setFooter({ text: "MajestyCorp • Cliquez pour choisir vos roles" })
     .setTimestamp(new Date());
+}
+
+function allRoles(cfg) {
+  return [...(cfg.projectRoles || []), ...(cfg.roles || [])];
 }
 
 async function findExistingPanel(channel, botId) {
   const msgs = await channel.messages.fetch({ limit: 30 }).catch(() => null);
   if (!msgs) return null;
-
-  // On cherche un message du bot dont l'embed contient le marker
   for (const m of msgs.values()) {
     if (m.author?.id !== botId) continue;
-    const emb = m.embeds?.[0];
-    const desc = emb?.description || "";
-    if (desc.includes(MARKER)) return m;
+    const title = m.embeds?.[0]?.title || "";
+    if (title === MARKER) return m;
   }
   return null;
 }
 
 async function ensureRoleMenu(client, guild) {
-  const cfg = client.config.roleMenu;
+  const cfg = client.config.getGuildConfig(guild.id).roleMenu;
   if (!cfg?.enabled) return;
   if (!cfg.channelId) return;
 
@@ -55,15 +73,15 @@ async function ensureRoleMenu(client, guild) {
     const channel = await client.channels.fetch(cfg.channelId).catch(() => null);
     if (!channel || !channel.isTextBased()) return;
 
-    const db = loadDb();
-    const gdb = getGuildDb(db, guild.id);
+    const db   = loadDb();
+    const gdb  = getGuildDb(db, guild.id);
+    const roles = allRoles(cfg);
 
-    // 1) message déjà connu
     if (gdb.messageId) {
       const msg = await channel.messages.fetch(gdb.messageId).catch(() => null);
       if (msg) {
-        // s'assure que les réactions existent
-        for (const r of cfg.roles || []) {
+        await msg.edit({ embeds: [buildEmbed(cfg)] }).catch(() => {});
+        for (const r of roles) {
           try { await msg.react(r.emoji); } catch {}
         }
         return;
@@ -72,25 +90,21 @@ async function ensureRoleMenu(client, guild) {
       saveDb(db);
     }
 
-    // 2) adopter un panel existant
     const existing = await findExistingPanel(channel, client.user.id);
     if (existing) {
+      await existing.edit({ embeds: [buildEmbed(cfg)] }).catch(() => {});
       gdb.messageId = existing.id;
       saveDb(db);
-      for (const r of cfg.roles || []) {
+      for (const r of roles) {
         try { await existing.react(r.emoji); } catch {}
       }
       return;
     }
 
-    // 3) créer
-    const embed = buildEmbed(cfg);
-    const msg = await channel.send({ embeds: [embed], allowedMentions: { parse: [] } });
-
-    for (const r of cfg.roles || []) {
+    const msg = await channel.send({ embeds: [buildEmbed(cfg)], allowedMentions: { parse: [] } });
+    for (const r of roles) {
       try { await msg.react(r.emoji); } catch {}
     }
-
     gdb.messageId = msg.id;
     saveDb(db);
   })();
@@ -100,24 +114,19 @@ async function ensureRoleMenu(client, guild) {
 }
 
 function getRoleByEmoji(cfg, emojiName) {
-  return (cfg.roles || []).find(r => r.emoji === emojiName) || null;
+  return allRoles(cfg).find(r => r.emoji === emojiName) || null;
 }
 
 async function isRoleMenuMessage(client, message) {
-  const cfg = client.config.roleMenu;
+  if (!message?.guild) return false;
+  const cfg = client.config.getGuildConfig(message.guild.id).roleMenu;
   if (!cfg?.enabled) return false;
-  if (!message || !message.guild) return false;
   if (message.channel?.id !== cfg.channelId) return false;
 
-  const db = loadDb();
+  const db  = loadDb();
   const gdb = db.guilds?.[message.guild.id];
   if (!gdb?.messageId) return false;
-
   return message.id === gdb.messageId;
 }
 
-module.exports = {
-  ensureRoleMenu,
-  isRoleMenuMessage,
-  getRoleByEmoji
-};
+module.exports = { ensureRoleMenu, isRoleMenuMessage, getRoleByEmoji };

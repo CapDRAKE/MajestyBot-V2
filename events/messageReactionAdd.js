@@ -22,10 +22,11 @@ module.exports = {
       // =========================
       // 1) ROLE MENU (prioritaire)
       // =========================
-      if (client.config.roleMenu?.enabled) {
+      const cfgRoleMenu = client.config.getGuildConfig(message.guild.id).roleMenu;
+      if (cfgRoleMenu?.enabled) {
         const isRolePanel = await roleMenu.isRoleMenuMessage(client, message);
         if (isRolePanel) {
-          const cfgRM = client.config.roleMenu;
+          const cfgRM = cfgRoleMenu;
           const emojiName = reaction.emoji?.name;
 
           const entry = roleMenu.getRoleByEmoji(cfgRM, emojiName);

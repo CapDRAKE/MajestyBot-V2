@@ -14,7 +14,7 @@ module.exports = {
       const isPanel = await roleMenu.isRoleMenuMessage(client, msg);
       if (!isPanel) return;
 
-      const cfg = client.config.roleMenu;
+      const cfg = client.config.getGuildConfig(msg.guild.id).roleMenu;
       const emojiName = reaction.emoji?.name;
       const entry = roleMenu.getRoleByEmoji(cfg, emojiName);
       if (!entry) return;

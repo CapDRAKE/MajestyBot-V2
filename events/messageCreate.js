@@ -10,42 +10,48 @@ module.exports = {
   once: false,
   async execute(client, message) {
     try {
-      const allowed = client.config.allowedGuildIds;
-      if (Array.isArray(allowed) && allowed.length && !allowed.includes(message.guild.id)) return;
-
       if (!message.guild) return;
       if (message.author.bot) return;
 
-      // 1) Anti-insulte d'abord
-      const insultStop = await antiInsult.handle(message);
-      if (insultStop) return;
+      const allowed = client.config.allowedGuildIds;
+      if (Array.isArray(allowed) && allowed.length && !allowed.includes(message.guild.id)) return;
 
-      // 2) Anti-spam ensuite
-      if (antiSpam?.handle) {
-        const stopped = await antiSpam.handle(message);
-        if (stopped) return;
+      const gc = client.config.getGuildConfig(message.guild.id);
+
+      // 1) Moderation (per-guild : skip si desactive)
+      if (gc.antiInsult && gc.antiInsult.enabled !== false) {
+        const insultStop = await antiInsult.handle(message);
+        if (insultStop) return;
       }
 
-      const abuseStop = await antiAbuse.handle(message);
-      if (abuseStop) return;
+      if (gc.antiSpam && gc.antiSpam.enabled !== false) {
+        if (antiSpam && antiSpam.handle) {
+          const stopped = await antiSpam.handle(message);
+          if (stopped) return;
+        }
+      }
+
+      if (gc.antiAbuse && gc.antiAbuse.enabled !== false) {
+        const abuseStop = await antiAbuse.handle(message);
+        if (abuseStop) return;
+      }
 
       const handledForm = await ticketForm.handleMessage(client, message);
       if (handledForm) return;
 
-      // 3) Apprentissage (mémoire) sur salons choisis
-      const cfgAI = client.config.ai;
-      if (cfgAI?.learn?.enabled && Array.isArray(cfgAI.learn.channelIds)) {
+      // 2) Apprentissage memoire (per-guild)
+      const cfgAI = gc.ai;
+      if (cfgAI && cfgAI.learn && cfgAI.learn.enabled && Array.isArray(cfgAI.learn.channelIds)) {
         if (cfgAI.learn.channelIds.includes(message.channel.id)) {
           const txt = (message.content || "").trim();
           const prefix = client.config.prefix || "+";
-          // on évite de stocker les commandes
           if (txt && !txt.startsWith(prefix)) {
             aiMemory.addMessage(
               {
                 guildId: message.guild.id,
                 channelId: message.channel.id,
                 authorId: message.author.id,
-                authorName: message.member?.displayName || message.author.username,
+                authorName: (message.member && message.member.displayName) || message.author.username,
                 content: txt,
                 createdAt: new Date().toISOString()
               },
@@ -57,8 +63,8 @@ module.exports = {
 
       const prefix = client.config.prefix || "+";
 
-      // 4) Si c'est une commande => on exécute, puis on s'arrête
-      if (message.content.startsWith(prefix)) {
+      // 3) Commandes
+      if (message.content && message.content.startsWith(prefix)) {
         const raw = message.content.slice(prefix.length).trim();
         if (!raw) return;
 
@@ -68,27 +74,25 @@ module.exports = {
 
         const cmd = client.commands.get(cmdName);
         if (!cmd) {
-          await message.reply(`Commande inconnue. Tape \`${prefix}help\``);
+          await message.reply("Commande inconnue. Tape `" + prefix + "help`");
           return;
         }
 
-        // discord-player context si présent
-        if (client.player?.context?.provide) {
-          await client.player.context.provide({ guild: message.guild }, () =>
-            cmd.execute({ client, message, args })
-          );
+        if (client.player && client.player.context && client.player.context.provide) {
+          await client.player.context.provide({ guild: message.guild }, function() {
+            return cmd.execute({ client: client, message: message, args: args });
+          });
         } else {
-          await cmd.execute({ client, message, args });
+          await cmd.execute({ client: client, message: message, args: args });
         }
-        return; // ✅ on ne lance pas l'IA sur une commande
+        return;
       }
 
-      // 5) Sinon : IA support (mention ou salon support)
-      const handledByAI = await aiSupport.handleAI(client, message);
-      if (handledByAI) return;
+      // 4) IA support
+      await aiSupport.handleAI(client, message);
 
     } catch (e) {
-      console.error("messageCreate error:", e?.message || e);
+      console.error("messageCreate error:", e && e.message || e);
     }
   }
 };

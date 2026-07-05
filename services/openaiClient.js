@@ -2,54 +2,49 @@ const fs = require("fs");
 const path = require("path");
 
 function loadOpenAIConfig() {
-  // Priorité : variable d'environnement > config/openai.json
-  if (process.env.OPENAI_API_KEY) {
-    const p = path.join(__dirname, "..", "config", "openai.json");
-    let model = "gpt-4o-mini";
-    try { model = JSON.parse(fs.readFileSync(p, "utf8")).model || model; } catch {}
-    return { apiKey: process.env.OPENAI_API_KEY, model };
+  if (process.env.GROQ_API_KEY) {
+    return { apiKey: process.env.GROQ_API_KEY, model: "llama-3.3-70b-versatile" };
   }
-
   const p = path.join(__dirname, "..", "config", "openai.json");
   if (!fs.existsSync(p)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
 }
 
-async function chatCompletion({ model, apiKey, messages, temperature = 0.2, maxTokens = 600 }) {
+async function chatCompletion({ model, apiKey, messages, temperature, maxTokens }) {
+  model = model || "llama-3.3-70b-versatile";
+
+  const body = {
+    model: model,
+    messages: messages,
+    temperature: temperature != null ? temperature : 0.7,
+    max_tokens: maxTokens || 700
+  };
+
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 25000);
+  const t = setTimeout(function() { controller.abort(); }, 25000);
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
+        "Authorization": "Bearer " + apiKey
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens
-      })
+      body: JSON.stringify(body)
     });
 
     if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`OpenAI HTTP ${res.status}: ${txt.slice(0, 200)}`);
+      const txt = await res.text().catch(function() { return ""; });
+      throw new Error("Groq HTTP " + res.status + ": " + txt.slice(0, 300));
     }
 
     const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     return (content || "").trim();
   } finally {
     clearTimeout(t);
   }
 }
 
-module.exports = { loadOpenAIConfig, chatCompletion };
+module.exports = { loadOpenAIConfig: loadOpenAIConfig, chatCompletion: chatCompletion };

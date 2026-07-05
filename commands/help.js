@@ -88,6 +88,19 @@ module.exports = {
       lines.push("");
     }
 
+    // Serveurs Minestrator (admin uniquement)
+    if (isAdmin) {
+      lines.push(`**Serveurs Minecraft (Admin)**`);
+      lines.push(`- \`${p}serverlist\` : liste les serveurs et leurs IDs`);
+      lines.push(`- \`${p}serverstatus [nom]\` : stats CPU/RAM/joueurs en temps réel`);
+      lines.push(`- \`${p}serverstart <nom>\` : démarrer un serveur`);
+      lines.push(`- \`${p}serverstop <nom>\` : arrêter un serveur (countdown 10s)`);
+      lines.push(`- \`${p}serverrestart <nom>\` : redémarrer (countdown 10s)`);
+      lines.push(`- \`${p}serverkill <nom>\` : forcer l’arrêt immédiat`);
+      lines.push(`- \`${p}serverconsole <nom> <commande>\` : envoyer une commande console`);
+      lines.push("");
+    }
+
     // Vote reminder manual check
     if (isAdmin || canManageGuild) {
       lines.push(`**Votes (Staff/Admin)**`);

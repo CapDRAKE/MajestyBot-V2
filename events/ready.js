@@ -4,6 +4,7 @@ const voteReminder = require("../services/voteReminder");
 const inviteTracker = require("../services/inviteTracker");
 const memberCounters = require("../services/memberCounters");
 const roleMenu = require("../services/roleMenu");
+const infoPanel = require("../services/infoPanel");
 
 module.exports = {
   name: "clientReady",
@@ -62,6 +63,13 @@ module.exports = {
 
     memberCounters.start(client);
     console.log("✅ Member counters started");
+
+    try {
+      await infoPanel.ensure(client);
+      console.log("✅ Info panel ready");
+    } catch (e) {
+      console.error("Info panel error:", e?.message || e);
+    }
 
     for (const guild of client.guilds.cache.values()) {
       const gc = client.config.getGuildConfig(guild.id);
