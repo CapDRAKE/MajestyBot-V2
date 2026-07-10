@@ -54,26 +54,30 @@ module.exports = {
       console.error("Ghost ping error:", e?.message || e);
     }
 
-   // 4) DM automatique bienvenue + vote (seulement si configuré)
+   // 4) DM automatique bienvenue
     try {
-      const voteUrl = gc.voteUrl;
-      const joinIp = gc.serverJoinIp;
-      if (!voteUrl || !joinIp) return;
-
       const dmText =
-`👋 Salut ${member.user.username} !
+`👋 Salut **${member.user.username}** !
 
-Bienvenue sur le Discord **${member.guild.name}** 😊
+Bienvenue sur le Discord **MajestyCorp** — la structure qui regroupe nos trois projets.
 
-⚡ **En 20 secondes :**
-• Si tu as besoin d’aide (Launcher / serveur), va dans le salon support ou mentionne le bot.
-• Pour rejoindre le serveur Minecraft : **${joinIp}**
+**⛏️ MajestyCraft**
+Serveur Minecraft multi-modes : Survie, Créatif, PVP Box, MajestySky.
+→ majestycraft.com
 
-⭐ **Petit coup de main :**
-Pense à voter (ça aide énormément le serveur) :
-${voteUrl}
+**🚀 MajestyLauncher**
+Launcher Minecraft : toutes les versions, Forge, OptiFine, mises à jour auto.
+→ majestylauncher.com
 
-Merci et bon jeu ! 🟩`;
+**🏆 MajestyChallenge**
+Défis, événements et classements pour ceux qui veulent se dépasser.
+→ majestychallenge.fr
+
+——
+
+🔔 **Pense à choisir tes rôles** dans le salon dédié pour recevoir uniquement les annonces qui t’intéressent.
+
+À tout de suite !`;
 
       await member.send({
         content: dmText,
