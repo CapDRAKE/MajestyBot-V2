@@ -83,40 +83,75 @@ function stripHtml(html) {
     .trim();
 }
 
-function extractRankingTable(html) {
-  const source = String(html || "");
-  const headerMatch = source.match(/<div[^>]*class="card-header"[^>]*>\s*Classement\s*<\/div>/i);
-  if (!headerMatch) return [];
-
-  const afterHeader = source.slice(headerMatch.index);
-  const tbodyMatch = afterHeader.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
-  if (!tbodyMatch) return [];
-
+function parseRowsFromTbody(tbodyContent) {
   const rows = [];
-  const rowRe = /<tr\b[\s\S]*?>([\s\S]*?)<\/tr>/gi;
+  const rowRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch;
 
-  while ((rowMatch = rowRe.exec(tbodyMatch[1]))) {
+  while ((rowMatch = rowRe.exec(tbodyContent))) {
     const cells = [...rowMatch[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)]
-      .map((match) => stripHtml(match[1]));
+      .map(m => stripHtml(m[1]));
 
-    if (cells.length < 3) continue;
+    if (cells.length < 2) continue;
 
-    const rank = Number((cells[0].match(/\d+/) || [])[0]);
-    const name = cells[1];
-    const votes = Number(cells[2].replace(/[^\d]/g, ""));
+    // Cherche une cellule avec un pseudo MC valide (2-16 chars alphanum/_)
+    // et une cellule avec un nombre de votes
+    let name = null;
+    let votes = null;
+    let rank = null;
 
-    if (!name || !Number.isFinite(votes)) continue;
+    for (const cell of cells) {
+      const clean = cell.trim();
+      if (/^\d+$/.test(clean) && rank === null && Number(clean) <= 9999) {
+        // Pourrait être le rang ou les votes
+        if (rank === null && rows.length === 0 && Number(clean) === 1) {
+          rank = 1;
+        } else if (votes === null && Number(clean) >= 0) {
+          votes = Number(clean);
+        }
+        continue;
+      }
+      if (/^[A-Za-z0-9_]{2,20}$/.test(clean) && name === null) {
+        name = clean;
+        continue;
+      }
+      // Nombre avec éventuellement des espaces/séparateurs
+      const numOnly = clean.replace(/[\s.,]/g, "");
+      if (/^\d+$/.test(numOnly) && votes === null) {
+        votes = Number(numOnly);
+      }
+    }
 
-    rows.push({
-      rank: Number.isFinite(rank) ? rank : rows.length + 1,
-      name,
-      votes
-    });
+    if (!name || votes === null) continue;
+    rows.push({ rank: rank ?? rows.length + 1, name, votes });
   }
 
-  rows.sort((a, b) => a.rank - b.rank);
-  return rows.map(({ name, votes }) => ({ name, votes }));
+  return rows;
+}
+
+function extractRankingTable(html) {
+  const source = String(html || "");
+  const best = [];
+
+  // Essaie tous les <tbody> de la page, garde celui avec le plus de lignes valides
+  const tbodyRe = /<tbody[^>]*>([\s\S]*?)<\/tbody>/gi;
+  let m;
+  while ((m = tbodyRe.exec(source))) {
+    const rows = parseRowsFromTbody(m[1]);
+    if (rows.length > best.length) {
+      best.length = 0;
+      best.push(...rows);
+    }
+  }
+
+  // Fallback : cherche des <tr> hors tbody
+  if (!best.length) {
+    const rows = parseRowsFromTbody(source);
+    best.push(...rows);
+  }
+
+  best.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+  return best.map(({ name, votes }) => ({ name, votes }));
 }
 
 function extractTop(text, which) {

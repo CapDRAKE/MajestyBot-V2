@@ -138,7 +138,7 @@ module.exports = {
         enabled: true,
         voteUrl: "https://majestycraft.com/vote",
         staffChannelId: "706143840481837057",
-        scheduleHours: [11, 19],
+        scheduleHours: [10, 19],
         minuteWindow: 3,
         list: "month",
         similarityThreshold: 0.82
