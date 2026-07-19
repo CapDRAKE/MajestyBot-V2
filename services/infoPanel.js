@@ -27,9 +27,10 @@ function buildEmbeds() {
         { name: "⭐  Voter",         value: "[majestycraft.com/vote](https://majestycraft.com/vote)", inline: true },
         { name: "🎫  Support",       value: "[majestycraft.com/support](https://majestycraft.com/support)", inline: true },
         { name: "📋  Recrutement",   value: "[Postuler ici](https://majestycraft.com/support/category/4/tickets/create)", inline: true },
+        { name: "📱  App mobile",    value: "[majestycraft.com/mobile](https://majestycraft.com/mobile)", inline: true },
         { name: "​", value: "​", inline: false },
         { name: "☕  Java",   value: "```play.majestycraft.com```", inline: true },
-        { name: "🪨  Bedrock", value: "```IP : 91.197.6.34\nPORT : 30136```", inline: true }
+        { name: "🪨  Bedrock", value: "```IP : 91.197.6.34\nPORT : 41831```", inline: true }
       ),
 
     new EmbedBuilder()
