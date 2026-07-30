@@ -59,28 +59,41 @@ function fmtLatency(ms) {
   return "🐌 " + ms + "ms";
 }
 
+const DOWN_DELAY_MS = 5 * 60 * 1000; // 5 min avant d'alerter
+
 async function checkAndAlert(client, cfg, db, key, name, url, online, mention, now, cooldownMs) {
   if (!db.servers[key]) db.servers[key] = { status: "unknown", lastNotify: 0 };
   const state = db.servers[key];
   const wasDown = state.status === "down";
   const canNotify = (now - (state.lastNotify || 0)) >= cooldownMs;
 
-  if (!online && state.status !== "down") {
-    state.status = "down";
-    if (canNotify) {
+  if (!online) {
+    if (state.status !== "down") {
+      // Premier tick offline : on démarre le timer sans alerter
+      if (!state.downSince) {
+        state.downSince = now;
+      } else if (now - state.downSince >= DOWN_DELAY_MS && canNotify) {
+        // Toujours offline après 5 min → alerte
+        state.status = "down";
+        state.lastNotify = now;
+        await sendAlert(client, cfg,
+          new EmbedBuilder().setColor(0xED4245).setTitle("🔴 Service DOWN").setDescription("**" + name + "**" + (url ? " (`" + url + "`)" : "") + " est hors ligne.").setTimestamp(),
+          mention);
+      }
+    }
+    // déjà "down" et alerté : rien à faire
+  } else {
+    // Retour en ligne
+    state.downSince = null;
+    if (wasDown) {
+      state.status = "up";
       state.lastNotify = now;
       await sendAlert(client, cfg,
-        new EmbedBuilder().setColor(0xED4245).setTitle("🔴 Service DOWN").setDescription("**" + name + "**" + (url ? " (`" + url + "`)" : "") + " est hors ligne.").setTimestamp(),
+        new EmbedBuilder().setColor(0x57F287).setTitle("🟢 Service UP").setDescription("**" + name + "**" + (url ? " (`" + url + "`)" : "") + " est de nouveau en ligne.").setTimestamp(),
         mention);
+    } else {
+      state.status = "up";
     }
-  } else if (online && wasDown) {
-    state.status = "up";
-    state.lastNotify = now;
-    await sendAlert(client, cfg,
-      new EmbedBuilder().setColor(0x57F287).setTitle("🟢 Service UP").setDescription("**" + name + "**" + (url ? " (`" + url + "`)" : "") + " est de nouveau en ligne.").setTimestamp(),
-      mention);
-  } else if (online) {
-    state.status = "up";
   }
 
   db.servers[key] = state;
