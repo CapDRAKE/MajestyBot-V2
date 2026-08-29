@@ -5,6 +5,7 @@ const inviteTracker = require("../services/inviteTracker");
 const memberCounters = require("../services/memberCounters");
 const roleMenu = require("../services/roleMenu");
 const infoPanel = require("../services/infoPanel");
+const { startRadio } = require("../services/musicRadio");
 
 module.exports = {
   name: "clientReady",
@@ -78,5 +79,7 @@ module.exports = {
       }
     }
     console.log("✅ Role menu ready");
+
+    // Radio démarrée depuis index.js après chargement des extractors
   }
 };

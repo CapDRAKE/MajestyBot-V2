@@ -1,56 +1,65 @@
-const { ChannelType } = require("discord.js");
-const { useMainPlayer } = require("discord-player");
+const { useMainPlayer, useQueue } = require("discord-player");
 
 module.exports = {
   name: "play",
   aliases: ["p"],
   async execute({ client, message, args }) {
-    const query = args.join(" ").trim();
-    if (!query) return message.reply(`Usage: \`${client.config.prefix}play <url ou recherche>\``);
-
-    const channel = message.member?.voice?.channel;
-    if (!channel) return message.reply("❌ Tu dois être dans un salon vocal.");
+    const queryRaw = args.join(" ").trim();
+    if (!queryRaw) return message.reply(`Usage: \`${client.config.prefix}play <titre ou URL>\``);
 
     const player = useMainPlayer();
+    const gc = client.config.getGuildConfig(message.guild.id);
+    const radioCfg = gc.radio;
+
+    // Détermine le salon vocal cible :
+    // 1) Le salon où est l'utilisateur
+    // 2) Sinon le salon radio si le bot y est déjà connecté
+    let voiceChannel = message.member?.voice?.channel;
+
+    if (!voiceChannel && radioCfg?.enabled) {
+      const radioChannelId = radioCfg._resolvedVoiceChannelId || radioCfg.voiceChannelId;
+      const queue = useQueue(message.guild.id);
+      if (queue && radioChannelId) {
+        voiceChannel = await message.guild.channels.fetch(radioChannelId).catch(() => null);
+      }
+    }
+
+    if (!voiceChannel) {
+      return message.reply("❌ Rejoins un salon vocal ou le salon radio pour proposer une musique.");
+    }
+
+    const query = /^https?:\/\//i.test(queryRaw) ? queryRaw : `ytsearch:${queryRaw}`;
+    const vol = radioCfg?.volume ?? Math.round((gc.music?.defaultVolume ?? 0.5) * 100);
+
+    const textChannel = radioCfg?.textChannelId
+      ? await message.guild.channels.fetch(radioCfg.textChannelId).catch(() => null)
+      : message.channel;
 
     try {
-      // ✅ Si c'est un Stage, le bot peut être "suppressed" => aucun son.
-      // On tentera de le mettre speaker après la connexion.
-      const isStage = channel.type === ChannelType.GuildStageVoice;
-
-      const vol = Math.round((client.config.music?.defaultVolume ?? 0.5) * 100);
-
-	const queryRaw = args.join(" ").trim();
-	const query = /^https?:\/\//i.test(queryRaw) ? queryRaw : `ytsearch:${queryRaw}`;
-      const { track, queue } = await player.play(channel, query, {
+      const { track } = await player.play(voiceChannel, query, {
         nodeOptions: {
-          metadata: { channel: message.channel },
-          // ✅ Désactive tous les auto-leave pendant le debug
-          leaveOnEnd: false,
-          leaveOnStop: false,
+          metadata: { channel: textChannel || message.channel },
+          leaveOnEnd:   false,
+          leaveOnStop:  false,
           leaveOnEmpty: false,
-
-          // utile si ça galère à démarrer
-          bufferingTimeout: 15_000,
-
-          // garde volume
-          volume: vol
-        }
+          volume: vol,
+          bufferingTimeout: 15_000
+        },
+        requestedBy: message.author
       });
 
-      // ✅ Tentative unsuppress Stage
-      if (isStage) {
-        try {
-          await message.guild.members.me.voice.setSuppressed(false);
-        } catch (e) {
-          // si pas les perms stage/modo stage, ça échoue mais on log pas dans le chat
-        }
-      }
+      const queue = useQueue(message.guild.id);
+      const pos = queue ? queue.size : "?";
+      const isNext = pos <= 1;
 
-      await message.reply(`🎶 Ajouté: **${track.cleanTitle}**`);
+      await message.reply(
+        isNext
+          ? `▶️ **${track.cleanTitle}** — lecture immédiate !`
+          : `🎵 **${track.cleanTitle}** ajouté à la file (position ${pos})`
+      );
     } catch (e) {
       console.error("[PLAY ERROR]", e);
-      await message.reply(`❌ Impossible de jouer: **${String(e?.message || e).slice(0, 180)}**`);
+      await message.reply(`❌ Impossible de jouer : **${String(e?.message || e).slice(0, 180)}**`);
     }
   }
 };

@@ -15,6 +15,7 @@ const { Player } = require("discord-player");
 const { YoutubeiExtractor } = require("discord-player-youtubei");
 const { DefaultExtractors } = require("@discord-player/extractor");
 const { getYouTubeCookie } = require("./services/youtubeAuth");
+const { startRadio } = require("./services/musicRadio");
 
 const TOKEN =
   process.env.DISCORD_TOKEN ||
@@ -81,6 +82,16 @@ client.once("clientReady", async () => {
   });
 
   console.log(`✅ Logged in as ${client.user.tag} (extractors loaded + youtubei)`);
+
+  // Démarre la radio après chargement des extractors
+  for (const guild of client.guilds.cache.values()) {
+    const gc = client.config.getGuildConfig(guild.id);
+    if (gc.radio?.enabled) {
+      startRadio(client, guild).catch(e =>
+        console.error("[Radio] init error:", e?.message || e)
+      );
+    }
+  }
 });
 
 // Commands + events

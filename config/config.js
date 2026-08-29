@@ -158,6 +158,20 @@ module.exports = {
         updateIntervalSec: 120
       },
 
+      radio: {
+        enabled: true,
+        // Salon vocal où le bot reste connecté en permanence
+        // Laisser null pour que le bot crée automatiquement "🎵 Radio"
+        voiceChannelId: null,
+        voiceChannelName: "🎵 Radio",
+        // Salon texte où le bot annonce les musiques (peut être null)
+        textChannelId: "845217118916182027",
+        // Musique de fond quand la queue est vide (URL YouTube ou null pour silence)
+        // Stream lofi 24/7 par défaut — remplace par n'importe quelle URL YouTube
+        fallbackUrl: "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+        volume: 50
+      },
+
       roleMenu: {
         enabled: true,
         channelId: "845235427698540564",
