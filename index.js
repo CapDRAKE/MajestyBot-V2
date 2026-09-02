@@ -46,7 +46,9 @@ const client = new Client({
 client.config = config;
 
 // --- Discord Player ---
-client.player = new Player(client);
+client.player = new Player(client, {
+  skipFFmpeg: false
+});
 
 // Logs utiles (une seule fois)
 client.player.events.on("playerStart", (queue, track) => {
@@ -58,6 +60,10 @@ client.player.events.on("playerStart", (queue, track) => {
 
 client.player.events.on("error", (queue, error) => {
   console.error("[DP ERROR]", error?.message || error);
+});
+
+client.player.events.on("playerError", (queue, error) => {
+  console.error("[DP PLAYER ERROR]", error?.message || error);
 });
 
 client.player.events.on("connectionError", (queue, error) => {
@@ -72,16 +78,12 @@ client.once("clientReady", async () => {
 
   await client.player.extractors.register(YoutubeiExtractor, {
     cookie: cookie || undefined,
-
-    disablePlayer: true,
-
-    // ✅ stream via client ANDROID
     streamOptions: {
       useClient: "ANDROID"
     }
   });
 
-  console.log(`✅ Logged in as ${client.user.tag} (extractors loaded + youtubei)`);
+  console.log(`✅ Logged in as ${client.user.tag}`);
 
   // Démarre la radio après chargement des extractors
   for (const guild of client.guilds.cache.values()) {

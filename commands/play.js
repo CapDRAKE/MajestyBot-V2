@@ -1,4 +1,4 @@
-const { useMainPlayer, useQueue } = require("discord-player");
+const { useMainPlayer, useQueue, QueryType } = require("discord-player");
 
 module.exports = {
   name: "play",
@@ -28,7 +28,7 @@ module.exports = {
       return message.reply("❌ Rejoins un salon vocal ou le salon radio pour proposer une musique.");
     }
 
-    const query = /^https?:\/\//i.test(queryRaw) ? queryRaw : `ytsearch:${queryRaw}`;
+    const query = queryRaw;
     const vol = radioCfg?.volume ?? Math.round((gc.music?.defaultVolume ?? 0.5) * 100);
 
     const textChannel = radioCfg?.textChannelId
@@ -36,7 +36,9 @@ module.exports = {
       : message.channel;
 
     try {
+      const isUrl = /^https?:\/\//i.test(query);
       const { track } = await player.play(voiceChannel, query, {
+        searchEngine: isUrl ? undefined : QueryType.SOUNDCLOUD_SEARCH,
         nodeOptions: {
           metadata: { channel: textChannel || message.channel },
           leaveOnEnd:   false,

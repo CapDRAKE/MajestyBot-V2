@@ -166,9 +166,12 @@ module.exports = {
         voiceChannelName: "🎵 Radio",
         // Salon texte où le bot annonce les musiques (peut être null)
         textChannelId: "845217118916182027",
-        // Musique de fond quand la queue est vide (URL YouTube ou null pour silence)
-        // Stream lofi 24/7 par défaut — remplace par n'importe quelle URL YouTube
-        fallbackUrl: "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+        // Stream radio direct — change l'URL pour changer de radio
+        // NRJ         : https://scdn.nrjaudio.fm/adwz2/fr/30001/mp3_128.mp3
+        // Fun Radio   : https://streaming.radio.funradio.fr/fun-1-48-192
+        // Skyrock     : https://icecast.skyrock.net/s/natio_mp3_128k
+        // Virgin Radio: https://icecast.radiofrance.fr/virg-hifi.aac
+        streamUrl: "https://scdn.nrjaudio.fm/adwz2/fr/30001/mp3_128.mp3",
         volume: 50
       },
 
